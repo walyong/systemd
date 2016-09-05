@@ -2990,10 +2990,50 @@ int config_parse_memory_limit(
                 c->memory_high = bytes;
         else if (streq(lvalue, "MemoryMax"))
                 c->memory_max = bytes;
-        else if (streq(lvalue, "MemorySwapMax"))
-                c->memory_swap_max = bytes;
         else if (streq(lvalue, "MemoryLimit"))
                 c->memory_limit = bytes;
+        else
+                return -EINVAL;
+
+        return 0;
+}
+
+int config_parse_memory_swap_limit(
+                const char *unit,
+                const char *filename,
+                unsigned line,
+                const char *section,
+                unsigned section_line,
+                const char *lvalue,
+                int ltype,
+                const char *rvalue,
+                void *data,
+                void *userdata) {
+
+        CGroupContext *c = data;
+        uint64_t bytes = CGROUP_LIMIT_MAX;
+        int r;
+
+        if (!isempty(rvalue) && !streq(rvalue, "infinity")) {
+
+                r = parse_percent(rvalue);
+                if (r < 0) {
+                        r = parse_size(rvalue, 1024, &bytes);
+                        if (r < 0) {
+                                log_syntax(unit, LOG_ERR, filename, line, r, "Memory Swap max '%s' invalid. Ignoring.", rvalue);
+                                return 0;
+                        }
+                } else
+                        bytes = physical_swap_scale(r, 100U);
+
+                if (bytes <= 0 || bytes >= UINT64_MAX) {
+                        log_syntax(unit, LOG_ERR, filename, line, 0, "Memory Swap max '%s' out of range. Ignoring.", rvalue);
+                        return 0;
+                }
+        }
+
+        if (streq(lvalue, "MemorySwapMax"))
+                c->memory_swap_max = bytes;
         else
                 return -EINVAL;
 
