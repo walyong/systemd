@@ -791,6 +791,52 @@ uint64_t physical_memory_scale(uint64_t v, uint64_t max) {
         return r;
 }
 
+uint64_t physical_swap(void) {
+        _cleanup_free_ char *s = NULL;
+        uint64_t t;
+        int r;
+
+        r = get_proc_field("/proc/meminfo", "SwapTotal", WHITESPACE, &s);
+        if (r < 0) {
+                log_error_errno(r, "Failed to get SwapTotal from /proc/meminfo: %m");
+                return 0;
+        }
+
+        r = safe_atou64(s, &t);
+        if (r < 0) {
+                log_error_errno(r, "Failed to parse SwapTotal from /proc/meminfo: %s: %m", s);
+                return 0;
+        }
+
+        /* SwapTotal in /proc/meminfo is kB unit. return as byte */
+        return t << 10;
+}
+
+uint64_t physical_swap_scale(uint64_t v, uint64_t max) {
+        uint64_t p, m, ps, r;
+
+        assert(max > 0);
+
+        ps = page_size();
+        assert(ps > 0);
+
+        p = physical_swap() / ps;
+        if (!p)
+                return 0;
+
+        m = p * v;
+        if (m / p != v)
+                return UINT64_MAX;
+
+        m /= max;
+
+        r = m * ps;
+        if (r / ps != m)
+                return UINT64_MAX;
+
+        return r;
+}
+
 uint64_t system_tasks_max(void) {
 
 #if SIZEOF_PID_T == 4

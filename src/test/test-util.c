@@ -310,6 +310,48 @@ static void test_physical_memory_scale(void) {
         assert_se(physical_memory_scale(UINT64_MAX/4, UINT64_MAX) == UINT64_MAX);
 }
 
+static void test_physical_swap(void) {
+        uint64_t p;
+        char buf[FORMAT_BYTES_MAX];
+
+        p = physical_swap();
+        assert_se(p > 0);
+        assert_se(p < UINT64_MAX);
+
+        log_info("Swap: %s (%" PRIu64 ")", format_bytes(buf, sizeof(buf), p), p);
+}
+
+static void test_physical_swap_scale(void) {
+        uint64_t p;
+
+        p = physical_swap();
+
+        assert_se(physical_swap_scale(0, 100) == 0);
+        assert_se(physical_swap_scale(100, 100) == p);
+
+        log_info("Swap original: %" PRIu64, physical_swap());
+        log_info("Swap scaled by 50%%: %" PRIu64, physical_swap_scale(50, 100));
+        log_info("Swap divided by 2: %" PRIu64, physical_swap() / 2);
+
+        /* There might be an uneven number of pages, hence permit these calculations to be half a page off... */
+        assert_se(physical_swap_scale(200, 100) == p*2);
+
+        assert_se(physical_swap_scale(0, 1) == 0);
+        assert_se(physical_swap_scale(1, 1) == p);
+        assert_se(physical_swap_scale(2, 1) == p*2);
+
+        assert_se(physical_swap_scale(0, 2) == 0);
+
+        assert_se(physical_swap_scale(2, 2) == p);
+        assert_se(physical_swap_scale(4, 2) == p*2);
+
+        assert_se(physical_swap_scale(0, UINT32_MAX) == 0);
+        assert_se(physical_swap_scale(UINT32_MAX, UINT32_MAX) == p);
+
+        /* overflow */
+        assert_se(physical_swap_scale(UINT64_MAX/4, UINT64_MAX) == UINT64_MAX);
+}
+
 static void test_system_tasks_max(void) {
         uint64_t t;
 
@@ -363,6 +405,8 @@ int main(int argc, char *argv[]) {
         test_raw_clone();
         test_physical_memory();
         test_physical_memory_scale();
+        test_physical_swap();
+        test_physical_swap_scale();
         test_system_tasks_max();
         test_system_tasks_max_scale();
 

@@ -187,6 +187,8 @@ int namespace_enter(int pidns_fd, int mntns_fd, int netns_fd, int userns_fd, int
 
 uint64_t physical_memory(void);
 uint64_t physical_memory_scale(uint64_t v, uint64_t max);
+uint64_t physical_swap(void);
+uint64_t physical_swap_scale(uint64_t v, uint64_t max);
 
 uint64_t system_tasks_max(void);
 uint64_t system_tasks_max_scale(uint64_t v, uint64_t max);
