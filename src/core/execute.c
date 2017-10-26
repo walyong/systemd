@@ -3162,6 +3162,16 @@ static int exec_child(
                         }
                 }
 
+#if ENABLE_SMACK
+                if (use_smack) {
+                        r = setup_smack(context, command);
+                        if (r < 0) {
+                                *exit_status = EXIT_SMACK_PROCESS_LABEL;
+                                return log_unit_error_errno(unit, r, "Failed to set SMACK process label: %m");
+                        }
+                }
+#endif
+
                 bset = context->capability_bounding_set;
                 /* If the ambient caps hack is enabled (which means the kernel can't do them, and the user asked for
                  * our magic fallback), then let's add some extra caps, so that the service can drop privs of its own,
@@ -3237,16 +3247,6 @@ static int exec_child(
                                         *exit_status = EXIT_SELINUX_CONTEXT;
                                         return log_unit_error_errno(unit, r, "Failed to change SELinux context to %s: %m", exec_context);
                                 }
-                        }
-                }
-#endif
-
-#if ENABLE_SMACK
-                if (use_smack) {
-                        r = setup_smack(context, command);
-                        if (r < 0) {
-                                *exit_status = EXIT_SMACK_PROCESS_LABEL;
-                                return log_unit_error_errno(unit, r, "Failed to set SMACK process label: %m");
                         }
                 }
 #endif
